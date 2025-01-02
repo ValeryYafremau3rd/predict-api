@@ -51,7 +51,7 @@ def select_features(X, y):
 
 def predictStats(X, y, X_data, scaler=None, regr=None):
 
-    if scaler == None:
+    if True:#scaler == None:
         scaler = StandardScaler()
         x_train = scaler.fit_transform(X)
         regr = linear_model.LinearRegression()
