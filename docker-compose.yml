@@ -41,7 +41,7 @@ services:
       - fr2-network
     ports:
       - 27017:27017
-volumes
+volumes:
   mongo-data:
     driver: local
   redis:
