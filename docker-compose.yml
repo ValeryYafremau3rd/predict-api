@@ -29,9 +29,9 @@ services:
       - redis
     networks:
       - fr2-network
-  mongodb:
+  mongodb-predict:
     image: mongodb/mongodb-community-server:6.0-ubi8
-    container_name: mongodb
+    container_name: mongodb-predict
     restart: unless-stopped
     environment:
       - MONGO_INITDB_ROOT_USERNAME=user
