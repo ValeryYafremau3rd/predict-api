@@ -29,20 +29,21 @@ services:
     networks:
       - fr2-network
   mongodb:
-    image: mongo:latest
+    image: mongodb/mongodb-community-server:6.0-ubi8
     container_name: mongodb
-    restart: always
+    restart: unless-stopped
     environment:
       - MONGO_INITDB_ROOT_USERNAME=user
       - MONGO_INITDB_ROOT_PASSWORD=pass
+    volumes:
+      - type: bind
+        source: ./data
+        target: /data/db
     networks:
       - fr2-network
-    volumes:
-      - mongodb_data:./data:/data/db
     ports:
       - 27017:27017
 volumes:
-  mongodb_data:
   redis:
     driver: local
 
