@@ -35,11 +35,15 @@ services:
     environment:
       - MONGODB_INITDB_ROOT_USERNAME=user
       - MONGODB_INITDB_ROOT_PASSWORD=pass
+    volumes:
+      - mongo-data:/data/db
     networks:
       - fr2-network
     ports:
       - 27017:27017
-volumes:
+volumes
+  mongo-data:
+    driver: local
   redis:
     driver: local
 
