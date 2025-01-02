@@ -35,10 +35,6 @@ services:
     environment:
       - MONGODB_INITDB_ROOT_USERNAME=user
       - MONGODB_INITDB_ROOT_PASSWORD=pass
-    volumes:
-      - type: bind
-        source: ./data
-        target: /data/db
     networks:
       - fr2-network
     ports:
