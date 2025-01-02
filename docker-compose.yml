@@ -33,8 +33,8 @@ services:
     image: mongodb/mongodb-community-server:6.0-ubi8
     container_name: mongodb
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=user
-      - MONGO_INITDB_ROOT_PASSWORD=pass
+      - MONGODB_INITDB_ROOT_USERNAME=user
+      - MONGODB_INITDB_ROOT_PASSWORD=pass
     volumes:
       - type: bind
         source: ./data
