@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server #--save 20 1 --loglevel warning
+    volumes: 
+      - redis:/data
+    networks:
+      - fr2-network
+  web: 
+    build:
+      context: ./
+      target: builder
+    ports: 
+      - '8000:8000'
+    depends_on:
+      - redis
+    networks:
+      - fr2-network
+  predictor_service: 
+    build:
+      context: predict-service
+      target: builder
+    depends_on:
+      - redis
+    networks:
+      - fr2-network
+  mongodb-predict:
+    image: mongodb/mongodb-community-server:6.0-ubi8
+    container_name: mongodb-predict
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=user
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+    networks:
+      - fr2-network
+    volumes:
+      - './data:/data/db'
+    ports:
+      - 27017:27017
+volumes:
+  redis:
+    driver: local
+
+networks:
+  fr2-network:
+    driver: bridge
