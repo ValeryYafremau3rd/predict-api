@@ -38,10 +38,11 @@ services:
     networks:
       - fr2-network
     volumes:
-      - './data:/data/db'
+      - mongodb_data:./data:/data/db
     ports:
       - 27017:27017
 volumes:
+  mongodb_data:
   redis:
     driver: local
 
