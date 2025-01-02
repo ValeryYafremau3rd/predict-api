@@ -21,6 +21,7 @@ services:
     networks:
       - fr2-network
   predictor_service: 
+    restart: always
     build:
       context: predict-service
       target: builder
