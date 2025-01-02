@@ -29,8 +29,8 @@ services:
     networks:
       - fr2-network
   mongodb-predict:
-    image: mongo
-    container_name: mongodb-predict
+    image: mongo:latest
+    container_name: mongodb
     restart: unless-stopped
     environment:
       - MONGO_INITDB_ROOT_USERNAME=user
