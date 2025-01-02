@@ -331,7 +331,7 @@ def find_task(id):
     match_coeff = {}
     db_predicted = {}
     db_predicted['odds'] = {}
-    accuracy = 5
+    accuracy = 6
 
     predicted_groups = predict_task(
         home_team, away_team, accuracy, match['_id'])
