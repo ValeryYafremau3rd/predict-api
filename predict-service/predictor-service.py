@@ -251,7 +251,7 @@ predicted_stats = [
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
-    deps_length = int(accuracy) * 3
+    deps_length = 25#int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
         #'Odd' in x or
         'Avg' in x or
@@ -331,7 +331,7 @@ def find_task(id):
     match_coeff = {}
     db_predicted = {}
     db_predicted['odds'] = {}
-    accuracy = 6
+    accuracy = 5
 
     predicted_groups = predict_task(
         home_team, away_team, accuracy, match['_id'])
