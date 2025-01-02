@@ -28,9 +28,10 @@ services:
       - redis
     networks:
       - fr2-network
-  mongodb-predict:
+  mongodb:
     image: mongo:latest
     container_name: mongodb
+    restart: always
     environment:
       - MONGO_INITDB_ROOT_USERNAME=user
       - MONGO_INITDB_ROOT_PASSWORD=pass
