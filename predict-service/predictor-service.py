@@ -318,7 +318,7 @@ print('Ready to use.')
 
 
 def find_task(id):
-    # try:
+  try:
     df = None
     match = queue.find_one({'_id': ObjectId(id)})
     queue.update_one({'_id': ObjectId(id)}, {
@@ -363,8 +363,8 @@ def find_task(id):
     # df.to_excel("odds_snapshot.xlsx")
     # queue.delete_one({'_id': match['_id']})
     queue.update_one({'_id': ObjectId(id)}, {'$set': {'status': 'finished'}})
-    # except:
-    #    queue.update_one({'_id': ObjectId(id)}, {'$set': {'status': 'failed'}})
+  except:
+    queue.update_one({'_id': ObjectId(id)}, {'$set': {'status': 'failed'}})
 
 
 def predict_task(home_team, away_team, accuracy, match_id):
