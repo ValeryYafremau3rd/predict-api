@@ -51,7 +51,7 @@ def select_features(X, y):
 
 def predictStats(X, y, X_data, scaler=None, regr=None):
 
-    if scaler == None:
+    if True:#scaler == None:
         scaler = StandardScaler()
         x_train = scaler.fit_transform(X)
         regr = linear_model.LinearRegression()
@@ -121,7 +121,7 @@ def train_test(df, stat):
     y = df[stat]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42)
+        X, y, test_size=0.3, random_state=42)
 
     # smote = SMOTE(random_state=42)
     # X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)

@@ -5,14 +5,14 @@ files:
     destination: /home/ubuntu/fr2
 hooks:
   BeforeInstall:
-    - location: scripts/before-install.sh
+    - location: Scripts/before-install.sh
       timeout: 300
       runas: root
   AfterInstall:
-    - location: scripts/after-install.sh
+    - location: Scripts/after-install.sh
       timeout: 1500
       runas: root  
   ApplicationStart:
-    - location: scripts/boot.sh
+    - location: Scripts/boot.sh
       timeout: 1500
       runas: root
