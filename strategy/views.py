@@ -16,7 +16,7 @@ r = redis.Redis(host='host.docker.internal', port=6379, decode_responses=True)
 
 
 def predicts(request, userId):
-    return JsonResponse({'data': [x for x in list(strategy.find({'userId': userId}, projection={'_id': 0}))]})
+    return JsonResponse({'data': [{**x, '_id': str(x['_id'])} for x in list(strategy.find({'userId': userId}))]})
 
 
 def add_to_queue(request, userId):
@@ -42,3 +42,10 @@ def delete_from_queue(request, matchId):
     match = queue.delete_one({'_id': ObjectId(matchId)})
     return JsonResponse({'data': json.loads(json.dumps(list(queue.find({'userId': int(body['userId'])})), default=str))})
     # return JsonResponse({'data': [x for x in list(strategy.find(projection={'_id': 0}))]})
+
+
+def delete_from_results(request, matchId):
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    match = strategy.delete_one({'_id': ObjectId(matchId)})
+    return JsonResponse({'data': [{**x, '_id': str(x['_id'])} for x in list(strategy.find({'userId': int(body['userId'])}))]})

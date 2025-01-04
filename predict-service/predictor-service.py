@@ -1,3 +1,4 @@
+import traceback
 import redis
 import json
 import pymongo
@@ -12,7 +13,8 @@ import dataset as ds
 import statistics
 from bson.objectid import ObjectId
 
-myclient = pymongo.MongoClient('mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
+myclient = pymongo.MongoClient(
+    'mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
 matches = myclient["statistics"]["matches"]
 fixtures = myclient["statistics"]["fixtures"]
 relations = myclient["statistics"]["relations"]
@@ -32,8 +34,8 @@ def prepareDataSet(league_id, groups):
     print('Collecting stats...')
     (pairs, all_team_stats) = sc.collect_stats(matches, league_id, groups)
 
-    print('Adding recent encounters...')
-    pairs = sc.recent_encounter(pairs)
+    #print('Adding recent encounters...')
+    #pairs = sc.recent_encounter(pairs)
 
     print('Calculating average values...')
     (avg_team_stats, avg_team_home_stats,
@@ -253,9 +255,9 @@ def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     resultNames = []
     deps_length = int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
-        #'Odd' in x or
+        # 'Odd' in x or
         'Avg' in x or
-        #'Recent' in x or
+        # 'Recent' in x or
         'Shape' in x) and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
     deps, score = rate_selected_features(
         df, deps, statName, home_team, away_team)
@@ -318,53 +320,56 @@ print('Ready to use.')
 
 
 def find_task(id):
-    # try:
-    df = None
-    match = queue.find_one({'_id': ObjectId(id)})
-    queue.update_one({'_id': ObjectId(id)}, {
-                     '$set': {'status': 'in_progress'}})
-    first_line = True
-    home_team = fixtures.find_one({'teams.home.name': match['homeTeam']})[
-        'teams']['home']
-    away_team = fixtures.find_one({'teams.away.name': match['awayTeam']})[
-        'teams']['away']
-    match_coeff = {}
-    db_predicted = {}
-    db_predicted['odds'] = {}
-    accuracy = 6
+    try:
+        df = None
+        match = queue.find_one({'_id': ObjectId(id)})
+        queue.update_one({'_id': ObjectId(id)}, {
+                         '$set': {'status': 'in_progress'}})
+        first_line = True
+        home_team = fixtures.find_one({'teams.home.name': match['homeTeam']})[
+            'teams']['home']
+        away_team = fixtures.find_one({'teams.away.name': match['awayTeam']})[
+            'teams']['away']
+        match_coeff = {}
+        db_predicted = {}
+        db_predicted['odds'] = {}
+        accuracy = 6
 
-    predicted_groups = predict_task(
-        home_team, away_team, accuracy, match['_id'])
+        predicted_groups = predict_task(
+            home_team, away_team, accuracy, match['_id'])
 
-    for predicted_group in predicted_groups:
-        match_coeff['homeTeam'] = match['homeTeam']
-        match_coeff['awayTeam'] = match['awayTeam']
-        db_predicted['homeTeam'] = match['homeTeam']
-        db_predicted['userId'] = int(match['userId'])
-        db_predicted['awayTeam'] = match['awayTeam']
-        db_predicted['league'] = fixtures.find_one(
-            {'teams.home.id': home_team['id']})['league']['name']
-        db_predicted['hints'] = predicted_group['hints']
-        db_predicted['odds'][predicted_group['betName']] = {
-            'relative': [
-                1 / x // 0.01 / 100 for x in predicted_group['relative_odds']],
-            'absolute': [
-                1 / x // 0.01 / 100 for x in predicted_group['absolute_odds']],
-            'rates': predicted_group['rates']
-        }
-        match_coeff[predicted_group['betName']] = [[
-            1 / x // 0.01 / 100 for x in predicted_group['relative_odds']], predicted_group['avg_accuracy']]
-    predicted.insert_one(db_predicted)
-    if first_line:
-        first_line = False
-        df = pandas.DataFrame([match_coeff])
-    else:
-        df = df._append(match_coeff, ignore_index=True)
-    # df.to_excel("odds_snapshot.xlsx")
-    # queue.delete_one({'_id': match['_id']})
-    queue.update_one({'_id': ObjectId(id)}, {'$set': {'status': 'finished'}})
-    # except:
-    #    queue.update_one({'_id': ObjectId(id)}, {'$set': {'status': 'failed'}})
+        for predicted_group in predicted_groups:
+            match_coeff['homeTeam'] = match['homeTeam']
+            match_coeff['awayTeam'] = match['awayTeam']
+            db_predicted['homeTeam'] = match['homeTeam']
+            db_predicted['userId'] = int(match['userId'])
+            db_predicted['awayTeam'] = match['awayTeam']
+            db_predicted['league'] = fixtures.find_one(
+                {'teams.home.id': home_team['id']})['league']['name']
+            #db_predicted['hints'] = 
+            db_predicted['odds'][predicted_group['betName']] = {
+                'hints': predicted_group['hints'],
+                'relative': [
+                    1 / x // 0.01 / 100 for x in predicted_group['relative_odds']],
+                'absolute': [
+                    1 / x // 0.01 / 100 for x in predicted_group['absolute_odds']],
+                'rates': predicted_group['rates']
+            }
+            match_coeff[predicted_group['betName']] = [[
+                1 / x // 0.01 / 100 for x in predicted_group['relative_odds']], predicted_group['avg_accuracy']]
+        predicted.insert_one(db_predicted)
+        if first_line:
+            first_line = False
+            df = pandas.DataFrame([match_coeff])
+        else:
+            df = df._append(match_coeff, ignore_index=True)
+        # df.to_excel("odds_snapshot.xlsx")
+        # queue.delete_one({'_id': match['_id']})
+        queue.update_one({'_id': ObjectId(id)}, {
+                         '$set': {'status': 'finished'}})
+    except Exception:
+        print(traceback.format_exc())
+        queue.update_one({'_id': ObjectId(id)}, {'$set': {'status': 'failed'}})
 
 
 def predict_task(home_team, away_team, accuracy, match_id):
@@ -386,7 +391,7 @@ def predict_task(home_team, away_team, accuracy, match_id):
                 df, pairs, home_team, away_team, odd['name'], accuracy)
             parts.append(min_value(max_value(predicted)))
             accuracies.append(accuracy_resulted)
-            hints.append({'odd': odd['name'], 'dependencies': deps})
+            hints.append(odd['name'])
         all_group_results.append({
             'betName': group['name'],
             'hints': hints,
