@@ -58,6 +58,11 @@ def prepareDataSet(league_id, groups):
     print('Adding win/draw/lose statisctics...')
     pairs = sc.win_draw_lose(pairs)
 
+    print('Adding statisctic shape for # home/away last matches...')
+    for i, pair in enumerate(pairs):
+        pairs[i] = pair | sc.home_away_shape(
+            pairs, pair['fixture'])
+
     print('Adding statisctic shape for 3 last matches...')
     for i, pair in enumerate(pairs):
         pairs[i] = pair | sc.find_last_matches(
@@ -81,7 +86,7 @@ def prepareDataSet(league_id, groups):
     #    elif 'Away Team' in statName and not 'Name' in statName and not 'Avg' in statName:
     #        awayTeamStatNames.append(statName)
 
-    sc.recent_encounter(pairs)
+    #sc.recent_encounter(pairs)
 
     df = pandas.DataFrame.from_dict(
         [pair for pair in pairs if not 'awayTeamAvgStats' in pair and not 'homeTeamAvgStats' in pair])
@@ -117,7 +122,8 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], True, False), **sc.find_last_matches(
             pairs, last_occur['fixture'], True, False, 5), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], True, False), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], True, False, 5)}
+            pairs, last_occur['fixture'], True, False, 5),**sc.home_away_shape(
+            pairs, last_occur['fixture'])}
         for stat in away_team_form_reversed:
             if 'Home' in stat:
                 away_team_form[stat.replace(
@@ -130,7 +136,8 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], False, True), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], False, True), **sc.find_last_matches(
             pairs, last_occur['fixture'], False, True, 5), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], False, True, 5)}
+            pairs, last_occur['fixture'], False, True, 5), **sc.home_away_shape(
+            pairs, last_occur['fixture'])}
 
     last_occur = [x for x in pairs[::-1] if x['awayTeamId']
                   == home_team or x['homeTeamId'] == home_team][0]
@@ -139,7 +146,8 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], False, True), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], False, True), **sc.find_last_matches(
             pairs, last_occur['fixture'], False, True, 5), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], False, True, 5)}
+            pairs, last_occur['fixture'], False, True, 5), **sc.home_away_shape(
+            pairs, last_occur['fixture'])}
         for stat in home_team_form_reversed:
             if 'Home' in stat:
                 home_team_form[stat.replace(
@@ -152,7 +160,8 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], True, False), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], True, False), **sc.find_last_matches(
             pairs, last_occur['fixture'], True, False, 5), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], True, False, 5)}
+            pairs, last_occur['fixture'], True, False, 5), **sc.home_away_shape(
+            pairs, last_occur['fixture'])}
     return away_team_form | home_team_form
 
 
@@ -255,10 +264,8 @@ def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     resultNames = []
     deps_length = int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
-        # 'Odd' in x or
         'Avg' in x or
-        # 'Recent' in x or
-        'Shape' in x) and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
+        'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
     deps, score = rate_selected_features(
         df, deps, statName, home_team, away_team)
     best_deps = sorted(deps, reverse=True, key=lambda x: rate(df,

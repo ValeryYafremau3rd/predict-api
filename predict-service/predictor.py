@@ -86,7 +86,7 @@ def train_test_model(X, y):
     # X_train, X_test, y_train, y_test = train_test_split(
     #    X, y, test_size=0.2, random_state=42)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, shuffle=False)
+        X, y, test_size=0.2, shuffle=False)
     # X_train = X[math.floor(len(X) * 0.8):]
     # X_test = X[:math.floor(len(X) * 0.8)]
     # y_train = y[math.floor(len(y) * 0.8):]
@@ -121,7 +121,7 @@ def train_test(df, stat):
     y = df[stat]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42)
+        X, y, test_size=0.2, random_state=42)
 
     # smote = SMOTE(random_state=42)
     # X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
@@ -199,7 +199,7 @@ def train_model(model, df, selected_features, scaler, stat):
     y = df[stat]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42)
+        X, y, test_size=0.2, random_state=42)
     scaler = StandardScaler()
     X_train_resampled = scaler.fit_transform(X)
     X_test = scaler.transform(X_train_resampled)
