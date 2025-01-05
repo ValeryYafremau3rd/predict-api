@@ -122,8 +122,7 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], True, False), **sc.find_last_matches(
             pairs, last_occur['fixture'], True, False, 5), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], True, False), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], True, False, 5),**sc.home_away_shape(
-            pairs, last_occur['fixture'])}
+            pairs, last_occur['fixture'], True, False, 5)}
         for stat in away_team_form_reversed:
             if 'Home' in stat:
                 away_team_form[stat.replace(
@@ -136,8 +135,7 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], False, True), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], False, True), **sc.find_last_matches(
             pairs, last_occur['fixture'], False, True, 5), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], False, True, 5), **sc.home_away_shape(
-            pairs, last_occur['fixture'])}
+            pairs, last_occur['fixture'], False, True, 5)}
 
     last_occur = [x for x in pairs[::-1] if x['awayTeamId']
                   == home_team or x['homeTeamId'] == home_team][0]
@@ -146,8 +144,7 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], False, True), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], False, True), **sc.find_last_matches(
             pairs, last_occur['fixture'], False, True, 5), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], False, True, 5), **sc.home_away_shape(
-            pairs, last_occur['fixture'])}
+            pairs, last_occur['fixture'], False, True, 5)}
         for stat in home_team_form_reversed:
             if 'Home' in stat:
                 home_team_form[stat.replace(
@@ -160,9 +157,9 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], True, False), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], True, False), **sc.find_last_matches(
             pairs, last_occur['fixture'], True, False, 5), **sc.xg_difference_shape(
-            pairs, last_occur['fixture'], True, False, 5), **sc.home_away_shape(
-            pairs, last_occur['fixture'])}
-    return away_team_form | home_team_form
+            pairs, last_occur['fixture'], True, False, 5)}
+    return away_team_form | home_team_form | sc.home_away_shape(
+            pairs, last_occur['fixture'])
 
 
 def prepare_X(home_team_name, away_team_name, deps, is_test=None):

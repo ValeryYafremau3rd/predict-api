@@ -33,13 +33,13 @@ def collect_stats(matches, league_id, groups, season=2024):
 
     for i, match in enumerate(matches.find({'league': league_id, 'active': True})):
         # optimize
-        if not (matches.find_one({'league': league_id, 'season': season, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
-                matches.find_one({'league': league_id, 'season': season, 'homeTeam.team.id': match['awayTeam']['team']['id']}) and
-                matches.find_one({'league': league_id, 'season': season-1, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
-                matches.find_one({'league': league_id, 'season': season-1, 'homeTeam.team.id': match['awayTeam']['team']['id']}) and
-                matches.find_one({'league': league_id, 'season': season-2, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
-                matches.find_one({'league': league_id, 'season': season-2, 'homeTeam.team.id': match['awayTeam']['team']['id']})):
-            continue
+        #if not (matches.find_one({'league': league_id, 'season': season, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
+        #        matches.find_one({'league': league_id, 'season': season, 'homeTeam.team.id': match['awayTeam']['team']['id']}) and
+        #        matches.find_one({'league': league_id, 'season': season-1, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
+        #        matches.find_one({'league': league_id, 'season': season-1, 'homeTeam.team.id': match['awayTeam']['team']['id']}) and
+        #        matches.find_one({'league': league_id, 'season': season-2, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
+        #        matches.find_one({'league': league_id, 'season': season-2, 'homeTeam.team.id': match['awayTeam']['team']['id']})):
+        #    continue
 
         fixture = fixtures.find_one({'fixture.id': match['fixture']})
 
