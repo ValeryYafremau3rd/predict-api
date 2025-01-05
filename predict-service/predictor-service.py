@@ -189,8 +189,8 @@ def prepare_X(home_team_name, away_team_name, deps, is_test=None):
 
 def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, rate, is_test, scaler, regr):
     data = []
-    recent_encounter = df.loc[(df['homeTeamId'] == home_team_name) &
-                              (df['awayTeamId'] == away_team_name)].iloc[0]
+    #recent_encounter = df.loc[(df['homeTeamId'] == home_team_name) &
+    #                          (df['awayTeamId'] == away_team_name)].iloc[0]
     homeTeam = df.loc[(df['homeTeamId'] == home_team_name)].iloc[0]
     awayTeam = df.loc[(df['awayTeamId'] == away_team_name)].iloc[0]
     newdf = df.loc[(df['homeTeamId'] == home_team_name) ^
@@ -207,8 +207,8 @@ def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, ra
                 data.append(awayTeam[dep])
         elif 'Shape' in dep:
             data.append(team_shape[dep])
-        elif 'Recent' in dep:
-            data.append(recent_encounter[dep.replace('Recent Encounter ', '')])
+        #elif 'Recent' in dep:
+        #    data.append(recent_encounter[dep.replace('Recent Encounter ', '')])
 
     X = newdf[deps]
     y = newdf[stat_to_predict]
