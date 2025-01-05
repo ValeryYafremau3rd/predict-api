@@ -333,9 +333,9 @@ def find_task(id):
         queue.update_one({'_id': ObjectId(id)}, {
                          '$set': {'status': 'in_progress'}})
         first_line = True
-        home_team = fixtures.find_one({'teams.home.name': match['homeTeam']})[
+        home_team = fixtures.find_one({'teams.home.id': match['homeTeam']})[
             'teams']['home']
-        away_team = fixtures.find_one({'teams.away.name': match['awayTeam']})[
+        away_team = fixtures.find_one({'teams.away.id': match['awayTeam']})[
             'teams']['away']
         match_coeff = {}
         db_predicted = {}
