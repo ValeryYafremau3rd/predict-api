@@ -333,9 +333,9 @@ def find_task(id):
         queue.update_one({'_id': ObjectId(id)}, {
                          '$set': {'status': 'in_progress'}})
         first_line = True
-        home_team = fixtures.find_one({'teams.home.id': match['homeTeam']})[
+        home_team = fixtures.find_one({'teams.home.id': match['homeTeam']['id']})[
             'teams']['home']
-        away_team = fixtures.find_one({'teams.away.id': match['awayTeam']})[
+        away_team = fixtures.find_one({'teams.away.id': match['awayTeam']['id']})[
             'teams']['away']
         match_coeff = {}
         db_predicted = {}
@@ -348,9 +348,9 @@ def find_task(id):
         for predicted_group in predicted_groups:
             match_coeff['homeTeam'] = match['homeTeam']
             match_coeff['awayTeam'] = match['awayTeam']
-            db_predicted['homeTeam'] = match['homeTeam']
+            db_predicted['homeTeam'] = home_team['name']
             db_predicted['userId'] = int(match['userId'])
-            db_predicted['awayTeam'] = match['awayTeam']
+            db_predicted['awayTeam'] = away_team['name']
             db_predicted['league'] = fixtures.find_one(
                 {'teams.home.id': home_team['id']})['league']['name']
             #db_predicted['hints'] = 
