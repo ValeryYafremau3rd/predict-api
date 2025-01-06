@@ -259,10 +259,10 @@ predicted_stats = [
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
-    deps_length = int(accuracy) * 4
+    deps_length = int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
         'Avg' in x or
-        'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
+        'Shape' in x) and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
     deps, score = rate_selected_features(
         df, deps, statName, home_team, away_team)
     best_deps = sorted(deps, reverse=True, key=lambda x: rate(df,
@@ -337,7 +337,7 @@ def find_task(id):
         match_coeff = {}
         db_predicted = {}
         db_predicted['odds'] = {}
-        accuracy = 5
+        accuracy = 6
 
         predicted_groups = predict_task(
             home_team, away_team, accuracy, match['_id'])
