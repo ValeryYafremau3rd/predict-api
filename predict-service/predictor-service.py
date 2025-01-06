@@ -262,7 +262,7 @@ def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     deps_length = int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
         'Avg' in x or
-        'Shape' in x) and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
+        'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
     deps, score = rate_selected_features(
         df, deps, statName, home_team, away_team)
     best_deps = sorted(deps, reverse=True, key=lambda x: rate(df,
