@@ -56,7 +56,7 @@ def odd(request, id):
 def edit(request, id):
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
-    print(body)
+    body['userId'] = int(body['userId'])
     odd = custom_odds.update_one({'_id': ObjectId(id)}, {"$set": body})
     return JsonResponse({'status': 'success'})
 

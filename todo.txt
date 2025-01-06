@@ -1,3 +1,4 @@
 red card effect
 cache
 train-test stratification
+sum of parameters
