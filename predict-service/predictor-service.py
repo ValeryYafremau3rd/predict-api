@@ -34,8 +34,8 @@ def prepareDataSet(league_id, groups):
     print('Collecting stats...')
     (pairs, all_team_stats) = sc.collect_stats(matches, league_id, groups)
 
-    #print('Adding recent encounters...')
-    #pairs = sc.recent_encounter(pairs)
+    # print('Adding recent encounters...')
+    # pairs = sc.recent_encounter(pairs)
 
     print('Calculating average values...')
     (avg_team_stats, avg_team_home_stats,
@@ -86,7 +86,7 @@ def prepareDataSet(league_id, groups):
     #    elif 'Away Team' in statName and not 'Name' in statName and not 'Avg' in statName:
     #        awayTeamStatNames.append(statName)
 
-    #sc.recent_encounter(pairs)
+    # sc.recent_encounter(pairs)
 
     df = pandas.DataFrame.from_dict(
         [pair for pair in pairs if not 'awayTeamAvgStats' in pair and not 'homeTeamAvgStats' in pair])
@@ -159,7 +159,7 @@ def get_shape(home_team, away_team, pairs, fixture=None):
             pairs, last_occur['fixture'], True, False, 5), **sc.xg_difference_shape(
             pairs, last_occur['fixture'], True, False, 5)}
     return away_team_form | home_team_form | sc.home_away_shape(
-            pairs, last_occur['fixture'])
+        pairs, last_occur['fixture'])
 
 
 def prepare_X(home_team_name, away_team_name, deps, is_test=None):
@@ -186,7 +186,7 @@ def prepare_X(home_team_name, away_team_name, deps, is_test=None):
 
 def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, rate, is_test, scaler, regr):
     data = []
-    #recent_encounter = df.loc[(df['homeTeamId'] == home_team_name) &
+    # recent_encounter = df.loc[(df['homeTeamId'] == home_team_name) &
     #                          (df['awayTeamId'] == away_team_name)].iloc[0]
     homeTeam = df.loc[(df['homeTeamId'] == home_team_name)].iloc[0]
     awayTeam = df.loc[(df['awayTeamId'] == away_team_name)].iloc[0]
@@ -204,7 +204,7 @@ def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, ra
                 data.append(awayTeam[dep])
         elif 'Shape' in dep:
             data.append(team_shape[dep])
-        #elif 'Recent' in dep:
+        # elif 'Recent' in dep:
         #    data.append(recent_encounter[dep.replace('Recent Encounter ', '')])
 
     X = newdf[deps]
@@ -259,7 +259,7 @@ predicted_stats = [
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
-    deps_length = int(accuracy) * 3
+    deps_length = int(accuracy) * 4
     deps = [x for x in avg_stat_names if (
         'Avg' in x or
         'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
@@ -337,7 +337,7 @@ def find_task(id):
         match_coeff = {}
         db_predicted = {}
         db_predicted['odds'] = {}
-        accuracy = 6
+        accuracy = 5
 
         predicted_groups = predict_task(
             home_team, away_team, accuracy, match['_id'])
@@ -350,14 +350,15 @@ def find_task(id):
             db_predicted['awayTeam'] = away_team['name']
             db_predicted['league'] = fixtures.find_one(
                 {'teams.home.id': home_team['id']})['league']['name']
-            #db_predicted['hints'] = 
+            # db_predicted['hints'] =
             db_predicted['odds'][predicted_group['betName']] = {
                 'hints': predicted_group['hints'],
                 'relative': [
                     1 / x // 0.01 / 100 for x in predicted_group['relative_odds']],
                 'absolute': [
                     1 / x // 0.01 / 100 for x in predicted_group['absolute_odds']],
-                'rates': predicted_group['rates']
+                'rates': predicted_group['rates'],
+                'relative_rates': predicted_group['relative_rates']
             }
             match_coeff[predicted_group['betName']] = [[
                 1 / x // 0.01 / 100 for x in predicted_group['relative_odds']], predicted_group['avg_accuracy']]
@@ -388,7 +389,10 @@ def predict_task(home_team, away_team, accuracy, match_id):
         print(f'Predicting group <{group["name"]}>')
         parts = []
         accuracies = []
+        relative_odds = []
         hints = []
+        full_deps = []
+        relative_rates = []
         for odd in group['items']:
             print(f'Predicting odd <{odd["name"]}>')
             predicted, accuracy_resulted, deps = predictAll(
@@ -396,13 +400,23 @@ def predict_task(home_team, away_team, accuracy, match_id):
             parts.append(min_value(max_value(predicted)))
             accuracies.append(accuracy_resulted)
             hints.append(odd['name'])
+            full_deps = [*full_deps, *list(dict.fromkeys(deps))]
+        for odd in group['items']:
+            print(f'Predicting relative odd <{odd["name"]}>')
+            relative_rate = rate(df, full_deps,
+                                 odd['name'], home_team, away_team)[0]
+            relative_odds.append(predict(df, pairs, home_team, away_team, odd['name'],
+                                         list(set(full_deps)), relative_rate, False, None, None))
+            relative_rates.append(relative_rate)
+
         all_group_results.append({
             'betName': group['name'],
             'hints': hints,
             'avg_accuracy': statistics.mean(accuracies),
             'rates': accuracies,
             'absolute_odds': parts,
-            'relative_odds': calibrate_chanses(parts, accuracies)
+            'relative_odds': relative_odds,
+            'relative_rates': relative_rates
         })
     return all_group_results
 
@@ -433,15 +447,3 @@ def start_saved_tasks():
 if __name__ == "__main__":
     sub()
     # start_saved_tasks()
-
-
-# allowed_origins = ["http://localhost:5173"]
-#
-#
-# async def main():
-#    async with serve(echo, "localhost", 8357, ping_interval=None) as server:
-#        await server.serve_forever()
-#
-#
-# if __name__ == "__main__":
-#    asyncio.run(main())

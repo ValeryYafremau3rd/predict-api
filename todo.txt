@@ -1,0 +1,3 @@
+red card effect
+cache
+train-test stratification
