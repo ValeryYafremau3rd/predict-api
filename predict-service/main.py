@@ -194,9 +194,8 @@ def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, ra
     X = newdf[deps]
     y = newdf[stat_to_predict]
     calced = pd.predictStats(X, y, pandas.DataFrame([data], columns=deps))
-    print(stat_to_predict, ':', float(
-        calced[0]) // 0.01 / 100, f"({rate})", deps)
-    return float(calced[0])
+    print(stat_to_predict, ':', calced[0] // 0.01 / 100, f"({rate})", deps)
+    return calced[0]
 
 
 

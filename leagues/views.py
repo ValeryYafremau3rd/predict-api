@@ -52,7 +52,7 @@ def teams_in_year(season, league):
                     'name': '$teams.home.name'
                 }
             }
-        }
+        }, {'$sort': {'teams.name': 1}}
     ]))
 
 

@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn import linear_model
+from sklearn.linear_model import LinearRegression
 import stat_calculator as sc
 from sklearn.metrics import r2_score
 import numpy
@@ -19,10 +20,39 @@ from sklearn.tree import DecisionTreeClassifier
 i = 0
 
 
+def select_logistic_features(X, y):
+    # Create a decision tree classifier
+    estimator = DecisionTreeClassifier()
+    model = LogisticRegression()
+
+    # Use RFE with cross-validation to
+    # find the optimal number of features
+    selector = RFE(estimator=model)
+    selector.fit(X.values, y)
+    # selected_features = X.columns[selector.support_].tolist()
+
+    # selector = RFECV(estimator, cv=5, n_features_to_select=10)
+    # selector = selector.fit(X, y)
+    #
+    # Print the optimal number of features
+    # print("Optimal number of features: %d" % selector.n_features_)
+    #
+    # Print the selected features
+    # print(X.columns)
+    # print("Selected features: %s" % selector.support_)
+    #selected_features = X.columns[selector.support_].tolist()
+    #regr_scores = cross_val_score(
+    #    model, X[selected_features], y, cv=5, scoring='r2')
+#
+    #x_train, x_test, y_train, y_test = train_test_split(
+    #    X, y, train_size=0.8, random_state=42)
+    #model.fit(x_train, y_train)
+    return  X.columns[selector.support_].tolist()
+
 def select_features(X, y):
     # Create a decision tree classifier
     estimator = DecisionTreeClassifier()
-    model = linear_model.LinearRegression()
+    model = LogisticRegression()
 
     # Use RFE with cross-validation to
     # find the optimal number of features
@@ -54,10 +84,11 @@ def predictStats(X, y, X_data, scaler=None, regr=None):
     if True:#scaler == None:
         scaler = StandardScaler()
         x_train = scaler.fit_transform(X)
-        regr = linear_model.LinearRegression()
+        regr = LogisticRegression()
         regr.fit(x_train, y.values)
         X_data = scaler.transform(X_data)
-        return regr.predict(X_data)
+        prob = regr.predict_proba(X_data)
+        return prob[:,1]
     X_data = scaler.transform(X_data)
 
     # regr_scores = cross_val_score(
@@ -86,7 +117,7 @@ def train_test_model(X, y):
     # X_train, X_test, y_train, y_test = train_test_split(
     #    X, y, test_size=0.2, random_state=42)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False)
+        X, y, test_size=8, shuffle=False)
     # X_train = X[math.floor(len(X) * 0.8):]
     # X_test = X[:math.floor(len(X) * 0.8)]
     # y_train = y[math.floor(len(y) * 0.8):]
@@ -95,7 +126,7 @@ def train_test_model(X, y):
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
-    model = linear_model.LinearRegression()
+    model = LogisticRegression()
     # model.predict(x_test)
 
     # print(train_x)

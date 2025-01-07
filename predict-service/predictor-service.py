@@ -228,11 +228,21 @@ def rate_selected_features(df, income_stat, calc_stat, home_team, away_team):
     newdf = df[(df['homeTeamId'] == home_team) ^
                (df['awayTeamId'] == away_team)]
 
-    df.to_excel("dataset.xlsx")
+    #df.to_excel("dataset.xlsx")
     X = newdf[income_stat]
     y = newdf[calc_stat]
     scaledX = scale.fit_transform(X)
     return pd.select_features(pandas.DataFrame(scaledX, columns=income_stat), y)
+
+def select_logistic_features(df, income_stat, calc_stat, home_team, away_team):
+    newdf = df[(df['homeTeamId'] == home_team) ^
+               (df['awayTeamId'] == away_team)]
+
+    #df.to_excel("dataset.xlsx")
+    X = newdf[income_stat]
+    y = newdf[calc_stat]
+    scaledX = scale.fit_transform(X)
+    return pd.select_logistic_features(pandas.DataFrame(scaledX, columns=income_stat), y)
 
 
 predicted_stats = [
@@ -256,10 +266,23 @@ predicted_stats = [
 ]
 
 
+def predictProbs(df, pairs, home_team, away_team, statName, accuracy=6):
+    deps = [x for x in avg_stat_names if (
+        'Avg' in x or
+        'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
+    deps = select_logistic_features(
+        df, deps, statName, home_team, away_team)
+
+    result = rate(df, deps, statName, home_team, away_team)
+
+    predicted = predict(df, pairs, home_team, away_team, statName,
+                        deps, result[0], False, result[1], result[2])
+    return (predicted, result[0], deps)
+
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
-    deps_length = int(accuracy) * 3
+    deps_length = int(accuracy) * 4
     deps = [x for x in avg_stat_names if (
         'Avg' in x or
         'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
@@ -279,7 +302,7 @@ def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     index_max = [x[0] for x in results].index(max([x[0] for x in results]))
     predicted = predict(df, pairs, home_team, away_team, statName,
                         resultNames[index_max], results[index_max][0] // 0.01 / 100, False, results[index_max][1], results[index_max][2])
-    return (predicted, results[index_max][0], resultNames[index_max])
+    return (predicted, results[index_max][0] // 0.01 / 100, resultNames[index_max])
 
 
 def avoid_zero_value(val, zero=0.01):
@@ -334,10 +357,11 @@ def find_task(id):
             'teams']['home']
         away_team = fixtures.find_one({'teams.away.id': match['awayTeam']['id']})[
             'teams']['away']
+        print(home_team['name'], away_team['name'])
         match_coeff = {}
         db_predicted = {}
         db_predicted['odds'] = {}
-        accuracy = 6
+        accuracy = 5
 
         predicted_groups = predict_task(
             home_team, away_team, accuracy, match['_id'])
@@ -354,9 +378,9 @@ def find_task(id):
             db_predicted['odds'][predicted_group['betName']] = {
                 'hints': predicted_group['hints'],
                 'relative': [
-                    1 / x // 0.01 / 100 for x in predicted_group['relative_odds']],
+                    1 / x // 0.001 / 1000 for x in predicted_group['relative_odds']],
                 'absolute': [
-                    1 / x // 0.01 / 100 for x in predicted_group['absolute_odds']],
+                    1 / x // 0.001 / 1000 for x in predicted_group['absolute_odds']],
                 'rates': predicted_group['rates'],
                 'relative_rates': predicted_group['relative_rates']
             }
@@ -397,7 +421,10 @@ def predict_task(home_team, away_team, accuracy, match_id):
             print(f'Predicting odd <{odd["name"]}>')
             predicted, accuracy_resulted, deps = predictAll(
                 df, pairs, home_team, away_team, odd['name'], accuracy)
-            parts.append(min_value(max_value(predicted)))
+            parts.append(predicted)
+            #predicted, accuracy_resulted, deps = predictProbs(
+            #    df, pairs, home_team, away_team, odd['name'], accuracy)
+            #parts.append(min_value(max_value(predicted)))
             accuracies.append(accuracy_resulted)
             hints.append(odd['name'])
             full_deps = [*full_deps, *list(dict.fromkeys(deps))]
@@ -408,7 +435,6 @@ def predict_task(home_team, away_team, accuracy, match_id):
             relative_odds.append(predict(df, pairs, home_team, away_team, odd['name'],
                                          list(set(full_deps)), relative_rate, False, None, None))
             relative_rates.append(relative_rate)
-
         all_group_results.append({
             'betName': group['name'],
             'hints': hints,
