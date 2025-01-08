@@ -16,6 +16,7 @@ from sklearn.svm import SVC
 
 from sklearn.feature_selection import RFECV
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 
 i = 0
 
@@ -117,7 +118,7 @@ def train_test_model(X, y):
     # X_train, X_test, y_train, y_test = train_test_split(
     #    X, y, test_size=0.2, random_state=42)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=8, shuffle=False)
+        X, y, test_size=0.2, shuffle=False)
     # X_train = X[math.floor(len(X) * 0.8):]
     # X_test = X[:math.floor(len(X) * 0.8)]
     # y_train = y[math.floor(len(y) * 0.8):]

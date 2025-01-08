@@ -31,7 +31,7 @@ scale = StandardScaler()
 
 
 def prepareDataSet(league_id, groups):
-    print('Collecting stats...')
+    print('\nCollecting stats...')
     (pairs, all_team_stats) = sc.collect_stats(matches, league_id, groups)
 
     # print('Adding recent encounters...')
@@ -228,17 +228,18 @@ def rate_selected_features(df, income_stat, calc_stat, home_team, away_team):
     newdf = df[(df['homeTeamId'] == home_team) ^
                (df['awayTeamId'] == away_team)]
 
-    #df.to_excel("dataset.xlsx")
+    # df.to_excel("dataset.xlsx")
     X = newdf[income_stat]
     y = newdf[calc_stat]
     scaledX = scale.fit_transform(X)
     return pd.select_features(pandas.DataFrame(scaledX, columns=income_stat), y)
 
+
 def select_logistic_features(df, income_stat, calc_stat, home_team, away_team):
     newdf = df[(df['homeTeamId'] == home_team) ^
                (df['awayTeamId'] == away_team)]
 
-    #df.to_excel("dataset.xlsx")
+    # df.to_excel("dataset.xlsx")
     X = newdf[income_stat]
     y = newdf[calc_stat]
     scaledX = scale.fit_transform(X)
@@ -279,10 +280,11 @@ def predictProbs(df, pairs, home_team, away_team, statName, accuracy=6):
                         deps, result[0], False, result[1], result[2])
     return (predicted, result[0], deps)
 
+
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
-    deps_length = int(accuracy) * 4
+    deps_length = 15#int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
         'Avg' in x or
         'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
@@ -357,11 +359,11 @@ def find_task(id):
             'teams']['home']
         away_team = fixtures.find_one({'teams.away.id': match['awayTeam']['id']})[
             'teams']['away']
-        print(home_team['name'], away_team['name'])
+        print('\n', home_team['name'], away_team['name'])
         match_coeff = {}
         db_predicted = {}
         db_predicted['odds'] = {}
-        accuracy = 5
+        accuracy = 4
 
         predicted_groups = predict_task(
             home_team, away_team, accuracy, match['_id'])
@@ -378,14 +380,14 @@ def find_task(id):
             db_predicted['odds'][predicted_group['betName']] = {
                 'hints': predicted_group['hints'],
                 'relative': [
-                    1 / x // 0.001 / 1000 for x in predicted_group['relative_odds']],
+                    1 / min_value(x, 0.001) // 0.001 / 1000 for x in predicted_group['relative_odds']],
                 'absolute': [
-                    1 / x // 0.001 / 1000 for x in predicted_group['absolute_odds']],
+                    1 / min_value(x, 0.001) // 0.001 / 1000 for x in predicted_group['absolute_odds']],
                 'rates': predicted_group['rates'],
                 'relative_rates': predicted_group['relative_rates']
             }
             match_coeff[predicted_group['betName']] = [[
-                1 / x // 0.01 / 100 for x in predicted_group['relative_odds']], predicted_group['avg_accuracy']]
+                1 / min_value(x, 0.001) // 0.01 / 100 for x in predicted_group['relative_odds']], predicted_group['avg_accuracy']]
         predicted.insert_one(db_predicted)
         if first_line:
             first_line = False
@@ -393,9 +395,9 @@ def find_task(id):
         else:
             df = df._append(match_coeff, ignore_index=True)
         # df.to_excel("odds_snapshot.xlsx")
-        # queue.delete_one({'_id': match['_id']})
-        queue.update_one({'_id': ObjectId(id)}, {
-                         '$set': {'status': 'finished'}})
+        queue.delete_one({'_id': ObjectId(id)})
+        # queue.update_one({'_id': ObjectId(id)}, {
+        #                 '$set': {'status': 'finished'}})
     except Exception:
         print(traceback.format_exc())
         queue.update_one({'_id': ObjectId(id)}, {'$set': {'status': 'failed'}})
@@ -410,7 +412,7 @@ def predict_task(home_team, away_team, accuracy, match_id):
         {'homeTeam.team.id': home_team})['league'], groups)
     all_group_results = []
     for i, group in enumerate(groups):
-        print(f'Predicting group <{group["name"]}>')
+        print(f'\nPredicting group <{group["name"]}>')
         parts = []
         accuracies = []
         relative_odds = []
@@ -422,14 +424,14 @@ def predict_task(home_team, away_team, accuracy, match_id):
             predicted, accuracy_resulted, deps = predictAll(
                 df, pairs, home_team, away_team, odd['name'], accuracy)
             parts.append(predicted)
-            #predicted, accuracy_resulted, deps = predictProbs(
+            # predicted, accuracy_resulted, deps = predictProbs(
             #    df, pairs, home_team, away_team, odd['name'], accuracy)
-            #parts.append(min_value(max_value(predicted)))
+            # parts.append(min_value(max_value(predicted)))
             accuracies.append(accuracy_resulted)
             hints.append(odd['name'])
             full_deps = [*full_deps, *list(dict.fromkeys(deps))]
         for odd in group['items']:
-            print(f'Predicting relative odd <{odd["name"]}>')
+            print(f'\nPredicting relative odd <{odd["name"]}>')
             relative_rate = rate(df, full_deps,
                                  odd['name'], home_team, away_team)[0]
             relative_odds.append(predict(df, pairs, home_team, away_team, odd['name'],
@@ -461,7 +463,6 @@ def sub():
     for message in pubsub.listen():
         if message.get("type") == "message":
             data = json.loads(message.get("data"))
-            print(data)
             find_task(data['task_id'])
 
 
