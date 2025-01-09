@@ -88,13 +88,6 @@ def fetch_finished_matches(league, season, limit=10, skip=0):
         matches.insert_many(matches_to_insert)
 
 
-update_features(61, 2024)
-fetch_finished_matches(61, 2024, 100, 0)
-remove_old_matches(61)
-
-# team = 157
-# league = 78
-# season = 2023
-# teamRes = requests.get(f'https://v3.football.api-sports.io/teams/statistics?season={season}&team={team}&league={league}',
-#    headers={"x-rapidapi-key":"36def15c52268beb41f99b47d610e473"}).json()
-# teams.insert_one(teamRes["response"])
+update_features(39, 2024)
+fetch_finished_matches(39, 2024, 100, 0)
+remove_old_matches(39)

@@ -473,4 +473,4 @@ def start_saved_tasks():
 
 if __name__ == "__main__":
     sub()
-    # start_saved_tasks()
+    start_saved_tasks()
