@@ -1,9 +1,12 @@
+from django.http import HttpResponse
 import json
+from smtplib import SMTPResponseException
 from django.conf import settings
 from django.http import JsonResponse
 from django.template import loader
 from bson.objectid import ObjectId
 import redis
+import openpyxl
 
 import pymongo
 myclient = pymongo.MongoClient('mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
@@ -15,9 +18,55 @@ queue = myclient["statistics"]["queue"]
 r = redis.Redis(host='host.docker.internal', port=6379, decode_responses=True)
 
 
+def build_xml():
+    return 'hello.xlsx'
+
+
+
+
+
 def predicts(request, userId):
     return JsonResponse({'data': [{**x, '_id': str(x['_id'])} for x in list(strategy.find({'userId': userId}))]})
 
+
+def dowload_xml(request, userId):
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="Data.xlsx"'
+
+    # create workbook
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+
+    # stylize header row
+    # 'id','title', 'quantity','pub_date'
+
+    c1 = sheet.cell(row = 1, column = 1) 
+    c1.value = "id"
+    #c1.font = openpyxl.Font(bold=True)
+
+    c2 = sheet.cell(row= 1 , column = 2) 
+    c2.value = "title"
+    #c2.font = openpyxl.Font(bold=True)
+
+    c3 = sheet.cell(row= 1 , column = 3) 
+    c3.value = "quantity"
+    #c3.font = openpyxl.Font(bold=True)
+
+    c4 = sheet.cell(row= 1 , column = 4) 
+    c4.value = "pub_date"
+    #c4.font = openpyxl.Font(bold=True)
+
+    # export data to Excel
+    #rows = openpyxl.models.Data.objects.all().values_list('id','category', 'quantity','pub_date',)
+    #for row_num, row in enumerate(rows, 1):
+    #    # row is just a tuple
+    #    for col_num, value in enumerate(row):
+    #        c5 = sheet.cell(row=row_num+1, column=col_num+1) 
+    #        c5.value = value
+
+    wb.save(response)
+
+    return response
 
 def add_to_queue(request, userId):
     body_unicode = request.body.decode('utf-8')

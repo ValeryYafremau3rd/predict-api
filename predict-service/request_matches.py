@@ -91,3 +91,9 @@ def fetch_finished_matches(league, season, limit=10, skip=0):
 update_features(39, 2024)
 fetch_finished_matches(39, 2024, 100, 0)
 remove_old_matches(39)
+
+# 39 pl
+# 78 bl
+# 135 sa
+# 140 p
+# 61 l1

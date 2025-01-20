@@ -281,10 +281,51 @@ def predictProbs(df, pairs, home_team, away_team, statName, accuracy=6):
     return (predicted, result[0], deps)
 
 
+def predictPairs(df, pairs, home_team, away_team, statName, accuracy=6):
+    results = []
+    resultNames = []
+    best_pair = []
+    best_pair_result = 0
+    deps_length = 20  # int(accuracy) * 3
+    deps = [x for x in avg_stat_names if (
+        'Avg' in x or
+        'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
+    deps, score = rate_selected_features(
+        df, deps, statName, home_team, away_team)
+    best_deps = sorted(deps, reverse=True, key=lambda x: rate(df,
+                                                              [x], statName, home_team, away_team)[0])
+    best_home = [x for x in best_deps if 'Home Team ' in x][:10]
+    best_away = [x for x in best_deps if 'Away Team ' in x][:10]
+    print('best pair')
+    for i in best_home:
+        for j in best_away:
+            rated = rate(df, [i, j], statName, home_team, away_team)
+            if rated[0] > best_pair_result:
+                best_pair_result = rated[0]
+                best_pair = [i, j]
+    best_deps = [x for x in best_deps if not x in best_pair][:deps_length]
+    num_of_deps = len(best_deps[:int(accuracy)])
+
+    #print('rest')
+    #print(num_of_deps, len(best_deps))
+    #for i in range(num_of_deps):
+    #    set_of_stats = [list(x) for x in (combinations(best_deps, i+1))]
+    #    for index, combination in enumerate(set_of_stats):
+    #        combined = [*best_pair, *combination]
+    #        resultNames.append(combined)
+    #        results.append(
+    #            rate(df, combined, statName, home_team, away_team))
+
+    #index_max = [x[0] for x in results].index(max([x[0] for x in results]))
+    predicted = predict(df, pairs, home_team, away_team, statName,
+                        best_pair, best_pair_result // 0.01 / 100, False, None, None)
+    return (predicted, best_pair_result // 0.01 / 100, best_pair)
+
+
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
-    deps_length = 15#int(accuracy) * 3
+    deps_length = 20#int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
         'Avg' in x or
         'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
@@ -313,6 +354,11 @@ def avoid_zero_value(val, zero=0.01):
 
 def max_value(val, max=0.99):
     return max if val >= 1 else val
+
+
+def expand_odds(odds):
+    coeff = 1 / sum(odds)
+    return [x * coeff for x in odds]
 
 
 def min_value(val, min=0.01):
@@ -363,7 +409,7 @@ def find_task(id):
         match_coeff = {}
         db_predicted = {}
         db_predicted['odds'] = {}
-        accuracy = 4
+        accuracy = 3
 
         predicted_groups = predict_task(
             home_team, away_team, accuracy, match['_id'])
@@ -443,8 +489,10 @@ def predict_task(home_team, away_team, accuracy, match_id):
             'avg_accuracy': statistics.mean(accuracies),
             'rates': accuracies,
             'absolute_odds': parts,
+            'alt_relative_odds': expand_odds(parts),
+            'alt_relative_rates': accuracies,
+            'relative_rates': relative_rates,
             'relative_odds': relative_odds,
-            'relative_rates': relative_rates
         })
     return all_group_results
 
