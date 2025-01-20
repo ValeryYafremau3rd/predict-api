@@ -264,7 +264,8 @@ def dowload_xml(request, userId):
                 total_value = f'{total_value}+{income_cell.coordinate}'
 
             total_cell = sheet.cell(
-                row=i * 9 + 1, column=start_column + len(filtered_groups[group]['hints']))
+                row=i * 9 + 1, column=start_column - 1 + len(filtered_groups[group]['hints']))
+            total_cell.font = black_font
             total_cell.value = total_value if i == 0 else f'{total_value} + {sheet.cell(row=i * 9 - 9 + 1, column=start_column - 1 + len(filtered_groups[group]["hints"])).coordinate}'
             start_column += len(filtered_groups[group]['hints']) + 1
 
