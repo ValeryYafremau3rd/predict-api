@@ -222,37 +222,43 @@ def dowload_xml(request, userId):
                 odd_relative_cell = sheet.cell(
                     row=i * 9 + 3, column=start_column + odd_index)
                 odd_relative_cell.value = predict['odds'][group]['relative'][odd_index] if group in predict['odds'] else 0
-                odd_relative_cell.fill = data_fill
+                if group in predict['odds']:
+                    odd_relative_cell.fill = data_fill
                 odd_relative_cell.border = thin_border
 
                 odd_book_cell = sheet.cell(
                     row=i * 9 + 4, column=start_column + odd_index)
                 odd_book_cell.value = 0
-                odd_book_cell.fill = data_fill
+                if group in predict['odds']:
+                    odd_book_cell.fill = data_fill
                 odd_book_cell.border = thin_border
 
                 x_payoff_cell = sheet.cell(
                     row=i * 9 + 5, column=start_column + odd_index)
                 x_payoff_cell.value = f'={odd_book_cell.coordinate}/{odd_relative_cell.coordinate}'
-                x_payoff_cell.fill = data_fill
+                if group in predict['odds']:
+                    x_payoff_cell.fill = data_fill
                 x_payoff_cell.border = thin_border
 
                 bet_cell = sheet.cell(
                     row=i * 9 + 6, column=start_column + odd_index)
                 bet_cell.value = 0
-                bet_cell.fill = data_fill
+                if group in predict['odds']:
+                    bet_cell.fill = data_fill
                 bet_cell.border = thin_border
 
                 match_res_cell = sheet.cell(
                     row=i * 9 + 7, column=start_column + odd_index)
                 match_res_cell.value = 0
-                match_res_cell.fill = data_fill
+                if group in predict['odds']:
+                    match_res_cell.fill = data_fill
                 match_res_cell.border = thin_border
 
                 income_cell = sheet.cell(
                     row=i * 9 + 8, column=start_column + odd_index)
                 income_cell.value = f'={odd_book_cell.coordinate}*{match_res_cell.coordinate}*{bet_cell.coordinate}-{bet_cell.coordinate}'
-                income_cell.fill = data_fill
+                if group in predict['odds']:
+                    income_cell.fill = data_fill
                 income_cell.border = thin_border
 
                 total_value = f'{total_value}+{income_cell.coordinate}'
