@@ -73,24 +73,32 @@ def fetch_finished_matches(league, season, limit=10, skip=0):
     matches_to_insert = []
     all_fixtures = fixtures.find(
         {'league.id': league, 'league.season': season}).sort({'fixture.id': 1}).skip(skip)
-    for fixture in all_fixtures:
-        match = matches.find_one({'fixture': fixture['fixture']['id']})
-        if not match:
-            print(fixture['league']['round'] + ' > ' + fixture['teams']
-                  ['home']['name'] + ' : ' + fixture['teams']['away']['name'])
-            finished_match = requests.get(f'https://v3.football.api-sports.io/fixtures/statistics?fixture={fixture["fixture"]["id"]}',
-                                          headers={"x-rapidapi-key": "36def15c52268beb41f99b47d610e473"}).json()
-            matches_to_insert.append(
-                {"homeTeam": finished_match["response"][0], "awayTeam": finished_match["response"][1], "fixture": fixture["fixture"]["id"], "league": fixture["league"]["id"], "season": fixture["league"]["season"], 'active': True})
-        if len(matches_to_insert) > limit:
-            break
-    if len(matches_to_insert):
-        matches.insert_many(matches_to_insert)
+    try:
+        for fixture in all_fixtures:
+            match = matches.find_one({'fixture': fixture['fixture']['id']})
+            if not match:
+                print(fixture['league']['round'] + ' > ' + fixture['teams']
+                      ['home']['name'] + ' : ' + fixture['teams']['away']['name'])
+                finished_match = requests.get(f'https://v3.football.api-sports.io/fixtures/statistics?fixture={fixture["fixture"]["id"]}',
+                                              headers={"x-rapidapi-key": "36def15c52268beb41f99b47d610e473"}).json()
+                matches_to_insert.append(
+                    {"homeTeam": finished_match["response"][0], "awayTeam": finished_match["response"][1], "fixture": fixture["fixture"]["id"], "league": fixture["league"]["id"], "season": fixture["league"]["season"], 'active': True})
+            if len(matches_to_insert) >= limit:
+                break
+    finally:
+        if len(matches_to_insert):
+            matches.insert_many(matches_to_insert)
 
 
-update_features(39, 2024)
-fetch_finished_matches(39, 2024, 100, 0)
+matches.update_many({}, {"$set": {'active': True}})
+
+#update_features(135, 2024)
+#fetch_finished_matches(135, 2024, 10, 0)
+remove_old_matches(135)
 remove_old_matches(39)
+remove_old_matches(78)
+remove_old_matches(140)
+remove_old_matches(61)
 
 # 39 pl
 # 78 bl

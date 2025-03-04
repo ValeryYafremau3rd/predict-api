@@ -184,16 +184,27 @@ def prepare_X(home_team_name, away_team_name, deps, is_test=None):
     return pandas.DataFrame([data], columns=numeric_cols)
 
 
-def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, rate, is_test, scaler, regr):
+def predict(df, pairs, home_team, away_team, stat_to_predict, deps, rate, is_test, scaler, regr):
     data = []
     # recent_encounter = df.loc[(df['homeTeamId'] == home_team_name) &
     #                          (df['awayTeamId'] == away_team_name)].iloc[0]
-    homeTeam = df.loc[(df['homeTeamId'] == home_team_name)].iloc[0]
-    awayTeam = df.loc[(df['awayTeamId'] == away_team_name)].iloc[0]
-    newdf = df.loc[(df['homeTeamId'] == home_team_name) ^
-                   (df['awayTeamId'] == away_team_name)]
+    df = df.fillna(0)
+    homeTeam = df.loc[(df['homeTeamId'] == home_team)].iloc[0]
+    awayTeam = df.loc[(df['awayTeamId'] == away_team)].iloc[0]
+    newdf = df.loc[(df['homeTeamId'] == home_team) ^
+                   (df['awayTeamId'] == away_team)]
 
-    team_shape = get_shape(home_team_name, away_team_name,
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+#        newdf['awayTeamId'] != away_team) & (newdf[stat_to_predict] == 1)].iloc[-1]
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+#        newdf['awayTeamId'] != away_team) & (newdf[stat_to_predict] == 0)].iloc[-1]
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+#        newdf['awayTeamId'] == away_team) & (newdf[stat_to_predict] == 1)].iloc[-1]
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+#        newdf['awayTeamId'] == away_team) & (newdf[stat_to_predict] == 0)].iloc[-1]
+#    newdf.drop_duplicates(keep='last')
+
+    team_shape = get_shape(home_team, away_team,
                            pairs, None)
 
     for dep in deps:
@@ -218,7 +229,18 @@ def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, ra
 
 def rate(df, income_stat, calc_stat, home_team, away_team):
     newdf = df[(df['homeTeamId'] == home_team) ^
-               (df['awayTeamId'] == away_team)]
+               (df['awayTeamId'] == away_team)].fillna(0)
+
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+#        newdf['awayTeamId'] != away_team) & (newdf[calc_stat] == 1)].iloc[-1]
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+#        newdf['awayTeamId'] != away_team) & (newdf[calc_stat] == 0)].iloc[-1]
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+#        newdf['awayTeamId'] == away_team) & (newdf[calc_stat] == 1)].iloc[-1]
+#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+#        newdf['awayTeamId'] == away_team) & (newdf[calc_stat] == 0)].iloc[-1]
+#    newdf.drop_duplicates(keep='last')
+
     X = newdf[income_stat]
     y = newdf[calc_stat]
     return pd.train_test_model(X, y)
@@ -262,7 +284,7 @@ predicted_stats = [
     'Total passes',
     'Passes accurate',
     'Passes %',
-    'expected_goals',
+    #'expected_goals',
     'Goals',
 ]
 
@@ -286,7 +308,7 @@ def predictPairs(df, pairs, home_team, away_team, statName, accuracy=6):
     resultNames = []
     best_pair = []
     best_pair_result = 0
-    deps_length = 20  # int(accuracy) * 3
+    deps_length = 15  # int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
         'Avg' in x or
         'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
@@ -306,9 +328,9 @@ def predictPairs(df, pairs, home_team, away_team, statName, accuracy=6):
     best_deps = [x for x in best_deps if not x in best_pair][:deps_length]
     num_of_deps = len(best_deps[:int(accuracy)])
 
-    #print('rest')
-    #print(num_of_deps, len(best_deps))
-    #for i in range(num_of_deps):
+    # print('rest')
+    # print(num_of_deps, len(best_deps))
+    # for i in range(num_of_deps):
     #    set_of_stats = [list(x) for x in (combinations(best_deps, i+1))]
     #    for index, combination in enumerate(set_of_stats):
     #        combined = [*best_pair, *combination]
@@ -316,7 +338,7 @@ def predictPairs(df, pairs, home_team, away_team, statName, accuracy=6):
     #        results.append(
     #            rate(df, combined, statName, home_team, away_team))
 
-    #index_max = [x[0] for x in results].index(max([x[0] for x in results]))
+    # index_max = [x[0] for x in results].index(max([x[0] for x in results]))
     predicted = predict(df, pairs, home_team, away_team, statName,
                         best_pair, best_pair_result // 0.01 / 100, False, None, None)
     return (predicted, best_pair_result // 0.01 / 100, best_pair)
@@ -325,8 +347,9 @@ def predictPairs(df, pairs, home_team, away_team, statName, accuracy=6):
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
-    deps_length = 20#int(accuracy) * 3
+    deps_length = 20  # int(accuracy) * 3
     deps = [x for x in avg_stat_names if (
+        'Odd' in x or
         'Avg' in x or
         'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
     deps, score = rate_selected_features(
@@ -409,7 +432,7 @@ def find_task(id):
         match_coeff = {}
         db_predicted = {}
         db_predicted['odds'] = {}
-        accuracy = 3
+        accuracy = 2
 
         predicted_groups = predict_task(
             home_team, away_team, accuracy, match['_id'])
@@ -467,6 +490,19 @@ def predict_task(home_team, away_team, accuracy, match_id):
         relative_rates = []
         for odd in group['items']:
             print(f'Predicting odd <{odd["name"]}>')
+
+            #newdf = df.loc[(df['homeTeamId'] == home_team) ^
+            #               (df['awayTeamId'] == away_team)].fillna(0)
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 1)].iloc[-1]
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 0)].iloc[-1]
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 1)].iloc[-1]
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 0)].iloc[-1]
+            #newdf.drop_duplicates(keep='last')
+
             predicted, accuracy_resulted, deps = predictAll(
                 df, pairs, home_team, away_team, odd['name'], accuracy)
             parts.append(predicted)
@@ -478,6 +514,19 @@ def predict_task(home_team, away_team, accuracy, match_id):
             full_deps = [*full_deps, *list(dict.fromkeys(deps))]
         for odd in group['items']:
             print(f'\nPredicting relative odd <{odd["name"]}>')
+
+            #newdf = df.loc[(df['homeTeamId'] == home_team) ^
+            #               (df['awayTeamId'] == away_team)].fillna(0)
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 1)].iloc[-1]
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
+            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 0)].iloc[-1]
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 1)].iloc[-1]
+            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
+            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 0)].iloc[-1]
+            #newdf.drop_duplicates(keep='last')
+
             relative_rate = rate(df, full_deps,
                                  odd['name'], home_team, away_team)[0]
             relative_odds.append(predict(df, pairs, home_team, away_team, odd['name'],
@@ -489,10 +538,10 @@ def predict_task(home_team, away_team, accuracy, match_id):
             'avg_accuracy': statistics.mean(accuracies),
             'rates': accuracies,
             'absolute_odds': parts,
-            'alt_relative_odds': expand_odds(parts),
-            'alt_relative_rates': accuracies,
+            # 'alt_relative_odds': expand_odds(parts),
+            # 'alt_relative_rates': accuracies,
             'relative_rates': relative_rates,
-            'relative_odds': relative_odds,
+            'relative_odds': expand_odds(relative_odds),
         })
     return all_group_results
 

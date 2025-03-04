@@ -1,5 +1,6 @@
 version: '2.32.1'
 services:
+
   redis:
     container_name: redis-precit
     image: redis:6.2-alpine
@@ -13,6 +14,7 @@ services:
       - fr2-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
   web: 
     container_name: api-predict
     build:
@@ -26,6 +28,7 @@ services:
       - fr2-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
   predictor_service: 
     container_name: predictor_service
     restart: always
@@ -38,6 +41,7 @@ services:
       - fr2-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
   mongodb:
     image: mongodb/mongodb-community-server:6.0-ubi8
     container_name: mongodb
@@ -52,6 +56,7 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - 27017:27017
+
 volumes:
   mongo-data:
     driver: local

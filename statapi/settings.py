@@ -39,11 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'teamsapp',
-    'leagues',
+    'leaguesapp',
     'matchesapp',
-    'strategy',
-    'corsheaders',
-    'builder'
+#    'corsheaders',
+    'eventapp',
+    'groupapp',
+    'predictedapp',
+    'queueapp'
 ]
 
 MIDDLEWARE = [
@@ -135,4 +137,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+if DEBUG is True:
+     INSTALLED_APPS += ('corsheaders', )
