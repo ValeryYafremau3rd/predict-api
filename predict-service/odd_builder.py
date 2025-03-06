@@ -1,9 +1,5 @@
-import pymongo
 from bson.objectid import ObjectId
-
-myclient = pymongo.MongoClient('mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
-custom_odds = myclient["statistics"]["custom-odds"]
-groups = myclient["statistics"]["groups"]
+from services.db import groups, custom_odds
 
 group = groups.find_one({'name': 'Test group'})
 operators = ['and', 'or', '=', '>', '>=', '<', '<=', '!=', '+', '-']
@@ -93,12 +89,3 @@ def build_odd_chain(odds, statLine):
 
 def extract_odds_from_group(group, statLine):
     return build_odd_chain(group['items'], statLine)
-
-
-def test_on_line(line):
-    print('test')
-
-
-# print(extract_odds_from_group(group, {'Home Team Goals': 1, 'Away Team Goals': 0, 'Home Team Corner Kicks': 7,
-#      'Away Team Corner Kicks': 3, 'Home Team Shots insidebox': 7, 'Away Team Goalkeeper Saves': 3}))
-# print(switch_operator('=')(2,2))

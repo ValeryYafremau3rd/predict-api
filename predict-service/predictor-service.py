@@ -1,29 +1,17 @@
 import traceback
 import redis
 import json
-import pymongo
 import stat_calculator as sc
 import predictor as pd
 import pandas
 from sklearn.preprocessing import StandardScaler
 from itertools import combinations
-from multiprocessing.pool import Pool
-import asyncio
-import dataset as ds
 import statistics
 from bson.objectid import ObjectId
+from services.db import matches, fixtures, queue, predicted
+from services.numbers import calibrate_chanses, min_value, max_value, avoid_zero_value, expand_odds
 
-myclient = pymongo.MongoClient(
-    'mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
-matches = myclient["statistics"]["matches"]
-fixtures = myclient["statistics"]["fixtures"]
-relations = myclient["statistics"]["relations"]
-queue = myclient["statistics"]["queue"]
-predicted = myclient["statistics"]["predicts"]
 all_fixtures = fixtures.find()
-
-homeTeamStatNames = []
-awayTeamStatNames = []
 avg_stat_names = []
 match_stat_names = []
 pairs = []
@@ -79,14 +67,6 @@ def prepareDataSet(league_id, groups):
     for i, pair in enumerate(pairs):
         pairs[i] = pair | sc.xg_difference_shape(
             pairs, pair['fixture'], True, True, 5)
-
-    # for statName in pairs[0]:
-    #    if 'Home Team' in statName and not 'Name' in statName and not 'Avg' in statName:
-    #        homeTeamStatNames.append(statName)
-    #    elif 'Away Team' in statName and not 'Name' in statName and not 'Avg' in statName:
-    #        awayTeamStatNames.append(statName)
-
-    # sc.recent_encounter(pairs)
 
     df = pandas.DataFrame.from_dict(
         [pair for pair in pairs if not 'awayTeamAvgStats' in pair and not 'homeTeamAvgStats' in pair])
@@ -162,47 +142,13 @@ def get_shape(home_team, away_team, pairs, fixture=None):
         pairs, last_occur['fixture'])
 
 
-def prepare_X(home_team_name, away_team_name, deps, is_test=None):
-    data = []
-    homeTeam = df.loc[(df['homeTeamId'] == home_team_name)].iloc[-1]
-    awayTeam = df.loc[(df['awayTeamId'] == away_team_name)].iloc[-1]
-    newdf = df.loc[(df['homeTeamId'] == home_team_name) ^
-                   (df['awayTeamId'] == away_team_name)]
-
-    team_shape = get_shape(home_team_name, away_team_name,
-                           pairs, None)
-
-    numeric_cols = deps
-    for dep in numeric_cols:
-        if 'Avg' in dep and not 'Shape' in dep:
-            if 'Home' in dep:
-                data.append(homeTeam[dep])
-            else:
-                data.append(awayTeam[dep])
-        elif 'Shape' in dep:
-            data.append(team_shape[dep])
-    return pandas.DataFrame([data], columns=numeric_cols)
-
-
 def predict(df, pairs, home_team, away_team, stat_to_predict, deps, rate, is_test, scaler, regr):
     data = []
-    # recent_encounter = df.loc[(df['homeTeamId'] == home_team_name) &
-    #                          (df['awayTeamId'] == away_team_name)].iloc[0]
     df = df.fillna(0)
     homeTeam = df.loc[(df['homeTeamId'] == home_team)].iloc[0]
     awayTeam = df.loc[(df['awayTeamId'] == away_team)].iloc[0]
     newdf = df.loc[(df['homeTeamId'] == home_team) ^
                    (df['awayTeamId'] == away_team)]
-
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-#        newdf['awayTeamId'] != away_team) & (newdf[stat_to_predict] == 1)].iloc[-1]
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-#        newdf['awayTeamId'] != away_team) & (newdf[stat_to_predict] == 0)].iloc[-1]
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-#        newdf['awayTeamId'] == away_team) & (newdf[stat_to_predict] == 1)].iloc[-1]
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-#        newdf['awayTeamId'] == away_team) & (newdf[stat_to_predict] == 0)].iloc[-1]
-#    newdf.drop_duplicates(keep='last')
 
     team_shape = get_shape(home_team, away_team,
                            pairs, None)
@@ -215,8 +161,6 @@ def predict(df, pairs, home_team, away_team, stat_to_predict, deps, rate, is_tes
                 data.append(awayTeam[dep])
         elif 'Shape' in dep:
             data.append(team_shape[dep])
-        # elif 'Recent' in dep:
-        #    data.append(recent_encounter[dep.replace('Recent Encounter ', '')])
 
     X = newdf[deps]
     y = newdf[stat_to_predict]
@@ -230,16 +174,6 @@ def predict(df, pairs, home_team, away_team, stat_to_predict, deps, rate, is_tes
 def rate(df, income_stat, calc_stat, home_team, away_team):
     newdf = df[(df['homeTeamId'] == home_team) ^
                (df['awayTeamId'] == away_team)].fillna(0)
-
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-#        newdf['awayTeamId'] != away_team) & (newdf[calc_stat] == 1)].iloc[-1]
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-#        newdf['awayTeamId'] != away_team) & (newdf[calc_stat] == 0)].iloc[-1]
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-#        newdf['awayTeamId'] == away_team) & (newdf[calc_stat] == 1)].iloc[-1]
-#    newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-#        newdf['awayTeamId'] == away_team) & (newdf[calc_stat] == 0)].iloc[-1]
-#    newdf.drop_duplicates(keep='last')
 
     X = newdf[income_stat]
     y = newdf[calc_stat]
@@ -289,61 +223,6 @@ predicted_stats = [
 ]
 
 
-def predictProbs(df, pairs, home_team, away_team, statName, accuracy=6):
-    deps = [x for x in avg_stat_names if (
-        'Avg' in x or
-        'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
-    deps = select_logistic_features(
-        df, deps, statName, home_team, away_team)
-
-    result = rate(df, deps, statName, home_team, away_team)
-
-    predicted = predict(df, pairs, home_team, away_team, statName,
-                        deps, result[0], False, result[1], result[2])
-    return (predicted, result[0], deps)
-
-
-def predictPairs(df, pairs, home_team, away_team, statName, accuracy=6):
-    results = []
-    resultNames = []
-    best_pair = []
-    best_pair_result = 0
-    deps_length = 15  # int(accuracy) * 3
-    deps = [x for x in avg_stat_names if (
-        'Avg' in x or
-        'Shape' in x) and not 'Odd' in x and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
-    deps, score = rate_selected_features(
-        df, deps, statName, home_team, away_team)
-    best_deps = sorted(deps, reverse=True, key=lambda x: rate(df,
-                                                              [x], statName, home_team, away_team)[0])
-    best_home = [x for x in best_deps if 'Home Team ' in x][:10]
-    best_away = [x for x in best_deps if 'Away Team ' in x][:10]
-    print('best pair')
-    for i in best_home:
-        for j in best_away:
-            rated = rate(df, [i, j], statName, home_team, away_team)
-            if rated[0] > best_pair_result:
-                best_pair_result = rated[0]
-                best_pair = [i, j]
-    best_deps = [x for x in best_deps if not x in best_pair][:deps_length]
-    num_of_deps = len(best_deps[:int(accuracy)])
-
-    # print('rest')
-    # print(num_of_deps, len(best_deps))
-    # for i in range(num_of_deps):
-    #    set_of_stats = [list(x) for x in (combinations(best_deps, i+1))]
-    #    for index, combination in enumerate(set_of_stats):
-    #        combined = [*best_pair, *combination]
-    #        resultNames.append(combined)
-    #        results.append(
-    #            rate(df, combined, statName, home_team, away_team))
-
-    # index_max = [x[0] for x in results].index(max([x[0] for x in results]))
-    predicted = predict(df, pairs, home_team, away_team, statName,
-                        best_pair, best_pair_result // 0.01 / 100, False, None, None)
-    return (predicted, best_pair_result // 0.01 / 100, best_pair)
-
-
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     results = []
     resultNames = []
@@ -369,49 +248,6 @@ def predictAll(df, pairs, home_team, away_team, statName, accuracy=6):
     predicted = predict(df, pairs, home_team, away_team, statName,
                         resultNames[index_max], results[index_max][0] // 0.01 / 100, False, results[index_max][1], results[index_max][2])
     return (predicted, results[index_max][0] // 0.01 / 100, resultNames[index_max])
-
-
-def avoid_zero_value(val, zero=0.01):
-    return zero if val == 0 else val
-
-
-def max_value(val, max=0.99):
-    return max if val >= 1 else val
-
-
-def expand_odds(odds):
-    coeff = 1 / sum(odds)
-    return [x * coeff for x in odds]
-
-
-def min_value(val, min=0.01):
-    return min if val <= 0 else val
-
-
-def calibrate_chanses(parts, original_accuracies):
-    accuracies = [0.5 for x in original_accuracies]
-    total_parts = sum(parts)
-    total_accuracies = sum(accuracies)
-    if total_accuracies == 0:
-        return parts
-    exceeded = 1 - total_parts
-    relative_distribution = [(part / total_parts) for part in parts]
-    relative_fails = [((1 - accuracy) / total_accuracies)
-                      for accuracy in accuracies]
-    fail_distribution = [(fail / sum(relative_fails))
-                         for fail in relative_fails]
-    parts_to_add = [(fail_chance + relative_distribution[i]) / 2 * exceeded for i,
-                    fail_chance in enumerate(fail_distribution)]
-    distributed_chanses = [avoid_zero_value(
-        (part + parts_to_add[i]) // 0.01 / 100) for i, part in enumerate(parts)]
-    for i, chance in enumerate(distributed_chanses):
-        if chance < 0:
-            distributed_chanses[i] = 0.01
-            accuracies[i] = 1
-            distributed_chanses = calibrate_chanses(
-                distributed_chanses, accuracies)
-            break
-    return distributed_chanses
 
 
 print('Ready to use.')
@@ -491,41 +327,14 @@ def predict_task(home_team, away_team, accuracy, match_id):
         for odd in group['items']:
             print(f'Predicting odd <{odd["name"]}>')
 
-            #newdf = df.loc[(df['homeTeamId'] == home_team) ^
-            #               (df['awayTeamId'] == away_team)].fillna(0)
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 1)].iloc[-1]
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 0)].iloc[-1]
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 1)].iloc[-1]
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 0)].iloc[-1]
-            #newdf.drop_duplicates(keep='last')
-
             predicted, accuracy_resulted, deps = predictAll(
                 df, pairs, home_team, away_team, odd['name'], accuracy)
             parts.append(predicted)
-            # predicted, accuracy_resulted, deps = predictProbs(
-            #    df, pairs, home_team, away_team, odd['name'], accuracy)
-            # parts.append(min_value(max_value(predicted)))
             accuracies.append(accuracy_resulted)
             hints.append(odd['name'])
             full_deps = [*full_deps, *list(dict.fromkeys(deps))]
         for odd in group['items']:
             print(f'\nPredicting relative odd <{odd["name"]}>')
-
-            #newdf = df.loc[(df['homeTeamId'] == home_team) ^
-            #               (df['awayTeamId'] == away_team)].fillna(0)
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 1)].iloc[-1]
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] == home_team) & (
-            #    newdf['awayTeamId'] != away_team) & (newdf[odd['name']] == 0)].iloc[-1]
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 1)].iloc[-1]
-            # newdf.loc[-1] = newdf[(newdf['homeTeamId'] != home_team) & (
-            #    newdf['awayTeamId'] == away_team) & (newdf[odd['name']] == 0)].iloc[-1]
-            #newdf.drop_duplicates(keep='last')
 
             relative_rate = rate(df, full_deps,
                                  odd['name'], home_team, away_team)[0]
@@ -563,11 +372,5 @@ def sub():
             find_task(data['task_id'])
 
 
-def start_saved_tasks():
-    for task in queue.find({}, projection={"_id": 1}):
-        redis_conn.publish('task', json.dumps({'task_id': str(task['_id'])}))
-
-
 if __name__ == "__main__":
     sub()
-    start_saved_tasks()

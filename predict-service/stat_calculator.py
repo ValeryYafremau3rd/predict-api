@@ -1,18 +1,7 @@
 import copy
-import pymongo
 import odd_builder as ob
-smallest = 4.9406564584124654e-100
+from services.db import matches, fixtures
 
-
-def avoid_zero(val):
-    return val if val > 0 else smallest
-
-
-myclient = pymongo.MongoClient(
-    'mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
-matches = myclient["statistics"]["matches"]
-fixtures = myclient["statistics"]["fixtures"]
-relations = myclient["statistics"]["relations"]
 all_fixtures = fixtures.find()
 
 
@@ -36,14 +25,6 @@ def collect_stats(matches, league_id, groups, season=2024):
     pairs = []
 
     for i, match in enumerate(matches.find({'league': league_id, 'active': True, "$or": [{"season": season}, {"season": season-1}]})):
-        # optimize
-        # if not (matches.find_one({'league': league_id, 'season': season, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
-        #        matches.find_one({'league': league_id, 'season': season, 'homeTeam.team.id': match['awayTeam']['team']['id']}) and
-        #        matches.find_one({'league': league_id, 'season': season-1, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
-        #        matches.find_one({'league': league_id, 'season': season-1, 'homeTeam.team.id': match['awayTeam']['team']['id']}) and
-        #        matches.find_one({'league': league_id, 'season': season-2, 'homeTeam.team.id': match['homeTeam']['team']['id']}) and
-        #        matches.find_one({'league': league_id, 'season': season-2, 'homeTeam.team.id': match['awayTeam']['team']['id']})):
-        #    continue
 
         fixture = fixtures.find_one({'fixture.id': match['fixture']})
 
@@ -129,14 +110,6 @@ def collect_stats(matches, league_id, groups, season=2024):
                     stats_away[stat_name]
                 stats_away[stat_name + ' Total'] = stats_away[stat_name] + \
                     stats_home[stat_name]
-            # for stat_name_2nd in {**stats_home}:
-            #    if stat_name != stat_name_2nd:
-            #        stats_home['Self '+ stat_name + ' / Self ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_away['Self '+ stat_name + ' / Self ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_away[stat_name_2nd])
-            #        #stats_home['Self '+ stat_name + ' / Opponent ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_away[stat_name_2nd])
-            #        #stats_away['Self '+ stat_name + ' / Opponent ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_home['Opponent '+ stat_name + ' / Self ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_away['Opponent '+ stat_name + ' / Self ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_away[stat_name_2nd])
 
         for key in stats_home:
             serializedAwayTeamStats['Against ' + key] = stats_home[key]
@@ -168,14 +141,6 @@ def collect_stats(matches, league_id, groups, season=2024):
                     stats_away[stat_name]
                 stats_away[stat_name + ' Total'] = stats_away[stat_name] + \
                     stats_home[stat_name]
-            # for stat_name_2nd in {**stats_home}:
-            #    if stat_name != stat_name_2nd:
-            #        stats_home['Self '+ stat_name + ' / Self ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_away['Self '+ stat_name + ' / Self ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_away[stat_name_2nd])
-            #        #stats_home['Self '+ stat_name + ' / Opponent ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_away[stat_name_2nd])
-            #        #stats_away['Self '+ stat_name + ' / Opponent ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_home['Opponent '+ stat_name + ' / Self ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_away['Opponent '+ stat_name + ' / Self ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_away[stat_name_2nd])
 
         # possible duplicate
         stats_away['XG Difference'] = int(
@@ -677,17 +642,8 @@ def recent_encounter(pairs):
                     stats_away[stat_name]
                 stats_away[stat_name + ' Total'] = stats_away[stat_name] + \
                     stats_home[stat_name]
-            # for stat_name_2nd in {**stats_home}:
-            #    if stat_name != stat_name_2nd:
-            #        stats_home['Self '+ stat_name + ' / Self ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_away['Self '+ stat_name + ' / Self ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_away[stat_name_2nd])
-            #        #stats_home['Self '+ stat_name + ' / Opponent ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_away[stat_name_2nd])
-            #        #stats_away['Self '+ stat_name + ' / Opponent ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_home['Opponent '+ stat_name + ' / Self ' + stat_name_2nd] = stats_away[stat_name] / avoid_zero(stats_home[stat_name_2nd])
-            #        #stats_away['Opponent '+ stat_name + ' / Self ' + stat_name_2nd] = stats_home[stat_name] / avoid_zero(stats_away[stat_name_2nd])
 
-
-# duplicates for home and away
+        # duplicates for home and away
         stats_home['Win'] = int(stats_home['Goals'] > stats_away['Goals'])
         stats_home['Draw'] = int(stats_home['Goals'] == stats_away['Goals'])
         stats_home['Lose'] = int(stats_home['Goals'] < stats_away['Goals'])
@@ -724,9 +680,6 @@ def recent_encounter(pairs):
         stats_away['2nd Half Lose'] = int(
             stats_home['Goals'] - stats_home['Half Time Goals'] > stats_away['Goals'] - stats_away['Half Time Goals'])
 
-        # for stat in stats_home:
-        #    new_pair[f'Recent Encounter Home Team {stat}'] = stats_home[stat]
-        #    new_pair[f'Recent Encounter Away Team {stat}'] = stats_away[stat]
         pairs_with_recent_encounters.append(new_pair)
     return pairs_with_recent_encounters
 

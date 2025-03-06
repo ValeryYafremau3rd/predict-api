@@ -13,7 +13,8 @@ import dataset as ds
 import statistics
 from bson.objectid import ObjectId
 
-myclient = pymongo.MongoClient('mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
+myclient = pymongo.MongoClient(
+    'mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
 matches = myclient["statistics"]["matches"]
 fixtures = myclient["statistics"]["fixtures"]
 relations = myclient["statistics"]["relations"]
@@ -26,6 +27,7 @@ avg_stat_names = []
 match_stat_names = []
 pairs = []
 scale = StandardScaler()
+
 
 def prepareDataSet(league_id, groups):
     print('Collecting stats...')
@@ -48,14 +50,13 @@ def prepareDataSet(league_id, groups):
 
     print('Flattening data...')
     pairs = sc.flatten_stats(pairs)
-    
+
     print('Adding prediction groups...')
     pairs = sc.add_groups(pairs, groups)
 
     print('Adding win/draw/lose statisctics...')
     pairs = sc.win_draw_lose(pairs)
-    
-    
+
     print('Adding statisctic shape for 3 last matches...')
     for i, pair in enumerate(pairs):
         pairs[i] = pair | sc.find_last_matches(
@@ -73,7 +74,7 @@ def prepareDataSet(league_id, groups):
         pairs[i] = pair | sc.xg_difference_shape(
             pairs, pair['fixture'], True, True, 5)
 
-    #for statName in pairs[0]:
+    # for statName in pairs[0]:
     #    if 'Home Team' in statName and not 'Name' in statName and not 'Avg' in statName:
     #        homeTeamStatNames.append(statName)
     #    elif 'Away Team' in statName and not 'Name' in statName and not 'Avg' in statName:
@@ -89,11 +90,12 @@ def prepareDataSet(league_id, groups):
             avg_stat_names.append(statName)
         if 'Shape' in statName:
             avg_stat_names.append(statName)
-    
+
     for statName in avg_stat_names:
         match_stat_names.append(statName.replace(
             ' Avg', '').replace(' Against', ''))
     return (df, pairs)
+
 
 def get_shape(home_team, away_team, pairs, fixture=None):
     away_team_form = {}
@@ -198,8 +200,6 @@ def predict(df, pairs, home_team_name, away_team_name, stat_to_predict, deps, ra
     return calced[0]
 
 
-
-
 def rate(df, income_stat, calc_stat, home_team, away_team):
     newdf = df[(df['homeTeamId'] == home_team) ^
                (df['awayTeamId'] == away_team)]
@@ -238,24 +238,25 @@ predicted_stats = [
 ]
 
 
-
 def predictAll(df, pairs, home_team, away_team, statName, accuracy=2):
     results = []
     resultNames = []
     deps_length = int(accuracy) * 2
     deps = [x for x in avg_stat_names if (
-        'Avg' in x or 
+        'Avg' in x or
         'Shape' in x) and not 'totalMatches' in x and not 'goals_prevented' in x and not 'is_home' in x and not 'fixture' in x]
-    deps, score = rate_selected_features(df, deps, statName, home_team, away_team)
-    best_deps = sorted(deps, reverse=True, key=lambda x: rate(df, 
-        [x], statName, home_team, away_team))[:deps_length]
+    deps, score = rate_selected_features(
+        df, deps, statName, home_team, away_team)
+    best_deps = sorted(deps, reverse=True, key=lambda x: rate(df,
+                                                              [x], statName, home_team, away_team))[:deps_length]
     num_of_deps = len(best_deps[:int(accuracy)])
 
     for i in range(num_of_deps):
         set_of_stats = [list(x) for x in (combinations(best_deps, i+1))]
         for index, combination in enumerate(set_of_stats):
             resultNames.append(combination)
-            results.append(rate(df, combination, statName, home_team, away_team))
+            results.append(
+                rate(df, combination, statName, home_team, away_team))
 
     index_max = results.index(max(results))
     predicted = predict(df, pairs, home_team, away_team, statName,
@@ -266,11 +267,13 @@ def predictAll(df, pairs, home_team, away_team, statName, accuracy=2):
 def avoid_zero_value(val, zero=0.01):
     return zero if val == 0 else val
 
+
 def max_value(val, max=0.99):
     return max if val >= 1 else val
 
+
 def min_value(val, min=0.01):
-    return min if val <=0 else val
+    return min if val <= 0 else val
 
 
 def calibrate_chanses(parts, original_accuracies):
@@ -298,7 +301,9 @@ def calibrate_chanses(parts, original_accuracies):
             break
     return distributed_chanses
 
+
 print('Ready to use.')
+
 
 async def echo(websocket):
     async for message in websocket:
@@ -306,11 +311,13 @@ async def echo(websocket):
         d[0] = int(d[0])
         d[1] = int(d[1])
         groups = []
-        
-        df, pairs = prepareDataSet(matches.find_one({'homeTeam.team.id': d[0]})['league'], groups)
+
+        df, pairs = prepareDataSet(matches.find_one(
+            {'homeTeam.team.id': d[0]})['league'], groups)
         if d[2] == 'stats':
             for statName in ['Home Team ' + x for x in predicted_stats]:
-                homeTeamStat, accuracy, deps = predictAll(df, pairs, d[0], d[1], statName, d[3])
+                homeTeamStat, accuracy, deps = predictAll(
+                    df, pairs, d[0], d[1], statName, d[3])
                 awayTeamStat, accuracy, deps = predictAll(df, pairs, d[0], d[1], statName.replace(
                     'Home', 'Away'), d[3])
                 await websocket.send(json.dumps({
@@ -328,7 +335,8 @@ async def echo(websocket):
                 hints = []
                 for odd in group['items']:
                     # model, deps, scaler = pd.train_test(df, stat=betName)
-                    predicted, accuracy, deps = predictAll(df, pairs, d[0], d[1], odd['name'], d[3])
+                    predicted, accuracy, deps = predictAll(
+                        df, pairs, d[0], d[1], odd['name'], d[3])
                     parts.append(min_value(max_value(predicted)))
                     accuracies.append(accuracy)
                     hints.append({'odd': odd['name'], 'dependencies': deps})

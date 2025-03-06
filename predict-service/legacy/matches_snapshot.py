@@ -1,25 +1,17 @@
 import asyncio
 from websockets.asyncio.client import connect
-import pymongo
 import json
 import pandas
+from services.db import queue, fixtures, predicted
 
-myclient = pymongo.MongoClient('mongodb://user:pass@host.docker.internal:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false')
-fixtures = myclient["statistics"]["fixtures"]
-predicted = myclient["statistics"]["predicts"]
-queue = myclient["statistics"]["queue"]
-
-
-accuracy = 7
-
-
-async def hello():
+async def snapshot():
     async with connect("ws://localhost:8357", ping_interval=None) as websocket:
         df = None
+        accuracy = 7
         matches = queue.find({'userId': 1})
         first_line = True
         for match in matches:
-            #try:
+            try:
                 home_team = fixtures.find_one({'teams.home.name': match['homeTeam']})[
                     'teams']['home']
                 away_team = fixtures.find_one({'teams.away.name': match['awayTeam']})[
@@ -33,7 +25,8 @@ async def hello():
                     match_coeff['awayTeam'] = match['awayTeam']
                     db_predicted['homeTeam'] = match['homeTeam']
                     db_predicted['awayTeam'] = match['awayTeam']
-                    db_predicted['league'] = fixtures.find_one({'teams.home.id':home_team['id']})['league']['name']
+                    db_predicted['league'] = fixtures.find_one(
+                        {'teams.home.id': home_team['id']})['league']['name']
                     message = json.loads(await websocket.recv())
                     print(message)
                     db_predicted['hints'] = message['hints']
@@ -57,9 +50,9 @@ async def hello():
                     df = df._append(match_coeff, ignore_index=True)
                 df.to_excel("odds_snapshot.xlsx")
                 queue.delete_one({'_id': match['_id']})
-            #except:
-            #    print(f'{match["homeTeam"]} : {match["awayTeam"]} failed to predict')
+            except:
+                print(
+                    f'{match["homeTeam"]} : {match["awayTeam"]} failed to predict')
 
 if __name__ == "__main__":
-    asyncio.run(hello())
-
+    asyncio.run(snapshot())
