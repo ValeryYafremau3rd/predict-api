@@ -13,6 +13,6 @@ KEY = "36def15c52268beb41f99b47d610e473"
 # 61 l1
 available_leagues = [39, 78, 135, 140, 61]
 
-def fetch_data(uri):
-    return requests.get(API + '/leagues',
+def get_data(uri):
+    return requests.get(API + uri,
              headers={"x-rapidapi-key": KEY}).json()

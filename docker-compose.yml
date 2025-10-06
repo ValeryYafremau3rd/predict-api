@@ -43,7 +43,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   mongodb:
-    image: mongodb/mongodb-community-server:6.0-ubi8
+    image: mvertes/alpine-mongo
     container_name: mongodb
     environment:
       - MONGODB_INITDB_ROOT_USERNAME=user

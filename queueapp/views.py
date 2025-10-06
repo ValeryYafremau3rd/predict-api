@@ -14,7 +14,7 @@ def add_to_queue(request):
     # res = queue.update_one({'user_id': body['userId']}, {
     #    '$push': {'queue': [body['homeTeam'], body['awayTeam']]}}, upsert=True)
     res = db.queue.insert_one(body)
-    redis.publish('task', json.dumps({'task_id': str(res.inserted_id)}))
+    redis.lpush('task_queue', json.dumps({'task_id': str(res.inserted_id)}))
     return JsonResponse({'data': json.loads(json.dumps(list(db.queue.find({'userId': int(request.headers["authorization"])})), default=str))})
 
 
@@ -22,6 +22,10 @@ def add_to_queue(request):
 def get_queue(request):
     return JsonResponse({'data': json.loads(json.dumps(list(db.queue.find({'userId': int(request.headers["authorization"])})), default=str))})
 
+@require_http_methods(["DELETE"])
+def delete_all_from_queue(request):
+    db.queue.delete_many({'userId': int(request.headers["authorization"])})
+    return JsonResponse({'data': json.loads(json.dumps(list(db.queue.find({'userId': int(request.headers["authorization"])})), default=str))})
 
 @require_http_methods(["DELETE"])
 def delete_from_queue(request, matchId):

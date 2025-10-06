@@ -1,0 +1,5 @@
+docker stop predictor_service
+docker rm predictor_service
+docker rmi predict-api-predictor_service
+docker compose -f docker-compose.yml up
+

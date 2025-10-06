@@ -1,7 +1,7 @@
 from bson.objectid import ObjectId
 from services.db import groups, custom_odds
 
-group = groups.find_one({'name': 'Test group'})
+#group = groups.find_one({'name': 'Test group'})
 operators = ['and', 'or', '=', '>', '>=', '<', '<=', '!=', '+', '-']
 comparators = ['=', '>', '>=', '<', '<=', '!=', ]
 combinators = ['and', 'or']

@@ -14,8 +14,8 @@ def teams_in_year(season, league):
 
 @require_http_methods(["GET"])
 def teams(request, name):
-    cur_year_teams = teams_in_year(2024, name)
-    prev_year_teams = teams_in_year(2023, name)
+    cur_year_teams = teams_in_year(2025, name)
+    prev_year_teams = teams_in_year(2024, name)
     promoted_teams = filter(lambda x: not x in prev_year_teams, cur_year_teams)
     return JsonResponse({'teams': [x['_id'] for x in cur_year_teams], 'promotedTeams': [x['_id'] for x in list(promoted_teams)]})
 
